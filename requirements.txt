@@ -1,0 +1,4 @@
+ultralytics>=8.3
+streamlit>=1.40
+pytest
+lap  # needed by model.track; ultralytics would auto-install it otherwise
