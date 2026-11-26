@@ -70,6 +70,7 @@ try:
     engine = ss.engine
     fps, last = 0.0, time.perf_counter()
     fails = dark = seq = 0
+    last_new = time.perf_counter()
     while True:
         ok, frame, new = cap.read()
         if not ok:
@@ -83,9 +84,13 @@ try:
             break
         fails = 0
         if new == seq:  # no new camera frame yet
+            if time.perf_counter() - last_new > 3:  # camera died mid-stream (unplugged, taken by another app)
+                ss.running = False
+                st.error("Lost the camera: no new frames for 3 seconds.")
+                break
             time.sleep(0.005)
             continue
-        seq = new
+        seq, last_new = new, time.perf_counter()
         dark = dark + 1 if frame.mean() < 2 else 0  # e.g. an asleep iPhone (Continuity Camera) sends black frames
         if dark == 50:
             st.warning(f"Camera {int(cam)} only sends black frames. Try another camera index in the sidebar.")
