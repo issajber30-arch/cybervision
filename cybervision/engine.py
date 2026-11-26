@@ -43,7 +43,7 @@ class Engine:
 
     def _pose(self, frame, conf):
         r = self.models["pose"].track(frame, persist=True, classes=[0], conf=conf,
-                                      device=self.device, verbose=False)[0]
+                                      device=self.device, imgsz=480, verbose=False)[0]
         people = []
         if r.boxes is None or len(r.boxes) == 0 or r.keypoints is None:
             return people
@@ -56,7 +56,7 @@ class Engine:
         return people
 
     def _seg(self, frame, conf):
-        r = self.models["seg"](frame, classes=[0], conf=conf, device=self.device, verbose=False)[0]
+        r = self.models["seg"](frame, classes=[0], conf=conf, device=self.device, imgsz=480, verbose=False)[0]
         out = []
         if r.masks is None:
             return out
