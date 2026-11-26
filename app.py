@@ -6,6 +6,7 @@ import cv2
 import streamlit as st
 
 from cybervision import effects, gestures
+from cybervision.camera import Camera
 from cybervision.engine import Engine
 
 MODES = ["HUD", "HOLOGRAM", "GHOST", "TIME ECHO"]
@@ -57,7 +58,7 @@ if not ss.running:
     view.info("Press Start in the sidebar.")
     st.stop()
 
-cap = cv2.VideoCapture(int(cam))
+cap = Camera(int(cam))
 try:
     if not cap.isOpened():
         ss.running = False
@@ -68,9 +69,9 @@ try:
         ss.engine = Engine()
     engine = ss.engine
     fps, last = 0.0, time.perf_counter()
-    fails = dark = 0
+    fails = dark = seq = 0
     while True:
-        ok, frame = cap.read()
+        ok, frame, new = cap.read()
         if not ok:
             fails += 1  # macOS cameras often fail the first reads while warming up or while the permission prompt is open
             if fails < 30:
@@ -81,6 +82,10 @@ try:
                      "close other apps using it, or try another camera index.")
             break
         fails = 0
+        if new == seq:  # no new camera frame yet
+            time.sleep(0.005)
+            continue
+        seq = new
         dark = dark + 1 if frame.mean() < 2 else 0  # e.g. an asleep iPhone (Continuity Camera) sends black frames
         if dark == 50:
             st.warning(f"Camera {int(cam)} only sends black frames. Try another camera index in the sidebar.")
@@ -99,7 +104,7 @@ try:
         else:
             out = frame
         out = effects.draw_hud(out, people, mode, fps, res["env"]) if mode == "HUD" else out
-        view.image(out, channels="BGR")
+        view.image(out, channels="BGR", output_format="JPEG")
 
         now = time.perf_counter()
         fps = 0.9 * fps + 0.1 / max(now - last, 1e-6) if fps else 1 / max(now - last, 1e-6)
@@ -113,4 +118,4 @@ try:
             ss.mode = MODES[(MODES.index(mode) + 1) % len(MODES)]
             mode_label.success(f"Gesture → {ss.mode}")
 finally:
-    cap.release()
+    cap.stop()
