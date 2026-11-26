@@ -39,7 +39,8 @@ Each gesture needs a short hold, then pauses, so it never fires twice.
 
 ```mermaid
 flowchart LR
-    CAM["Camera"] --> ENG
+    CAM["Camera"] --> THR["Camera thread<br/>keeps newest frame"]
+    THR --> ENG
 
     subgraph ENG["Engine"]
         direction TB
@@ -107,6 +108,17 @@ Names starting with `_` are internal helpers. "Internal" is marked in the first 
 | `Engine.process` | frame, settings dict (`conf`, `pose`, `seg`, `detect`, `cls`) | dict `people`, `objects`, `env`, `ms` | Runs the enabled models on schedule, matches masks to people, adds angles, posture, energy and carrying. |
 | `Engine._carrying` (internal) | one person dict | list of object names | Objects whose centre is near a wrist (or inside the person box if no wrist is seen). |
 
+### `cybervision/camera.py`
+
+| Name | Input | Output | What it does |
+|---|---|---|---|
+| `Camera` | camera index (or a capture object, for tests) | camera object | Reads the camera in a background thread so the app never waits for a frame and never shows an old one. |
+| `Camera.__init__` | source | none | Opens the camera and starts the reader thread. |
+| `Camera.isOpened` | none | bool | Whether the camera opened. |
+| `Camera._run` (internal) | none | none | Thread loop: read frames, keep only the newest and count them. |
+| `Camera.read` | none | `(ok, frame, seq)` | Newest frame and its counter, without waiting; a new `seq` means a new frame. |
+| `Camera.stop` | none | none | Stops the thread and releases the camera. |
+
 ### `cybervision/gestures.py`
 
 | Name | Input | Output | What it does |
@@ -155,7 +167,7 @@ Names starting with `_` are internal helpers. "Internal" is marked in the first 
 | `save_screenshot` | image | file name | Saves the image as PNG in `screenshots/` with a timestamp name. |
 | `toggle` | none | none | Start/Stop button callback; flips `running`. |
 
-The rest of `app.py` is the Streamlit page: sidebar controls, then the camera loop (read frame, `Engine.process`, effect for the mode, show, check gestures).
+The rest of `app.py` is the Streamlit page: sidebar controls, then the camera loop (newest frame from `Camera`, `Engine.process`, effect for the mode, show, check gestures).
 
 ## Install
 
@@ -194,6 +206,7 @@ pytest
 ```
 app.py                   Streamlit UI and camera loop
 cybervision/
+  camera.py              background camera reader (newest frame only)
   engine.py              model loading and per-frame scheduling
   gestures.py            angles, posture, energy, gesture checks
   effects.py             HUD, hologram, ghost, time echo
