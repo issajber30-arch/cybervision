@@ -36,6 +36,7 @@ streamlit run app.py
 
 Model weights download automatically on first run (or put them in `models/`).
 On macOS, allow camera access for your terminal in System Settings > Privacy & Security > Camera.
+If the picture stays black, pick another **Camera index** in the sidebar (on Macs with an iPhone nearby, index 0 is often the iPhone).
 
 ## Structure
 

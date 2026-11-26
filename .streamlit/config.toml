@@ -1,0 +1,6 @@
+[server]
+address = "localhost"  # camera feed stays on this computer
+headless = true
+
+[browser]
+gatherUsageStats = false

@@ -68,12 +68,22 @@ try:
         ss.engine = Engine()
     engine = ss.engine
     fps, last = 0.0, time.perf_counter()
+    fails = dark = 0
     while True:
         ok, frame = cap.read()
         if not ok:
+            fails += 1  # macOS cameras often fail the first reads while warming up or while the permission prompt is open
+            if fails < 30:
+                time.sleep(0.1)
+                continue
             ss.running = False
-            st.error("Lost the camera: could not read a frame.")
+            st.error("Lost the camera: no frames for 3 seconds. Check camera permission, "
+                     "close other apps using it, or try another camera index.")
             break
+        fails = 0
+        dark = dark + 1 if frame.mean() < 2 else 0  # e.g. an asleep iPhone (Continuity Camera) sends black frames
+        if dark == 50:
+            st.warning(f"Camera {int(cam)} only sends black frames. Try another camera index in the sidebar.")
         h, w = frame.shape[:2]
         frame = cv2.flip(cv2.resize(frame, (WIDTH, int(h * WIDTH / w))), 1)
         res = engine.process(frame, {"conf": conf, **skills})
